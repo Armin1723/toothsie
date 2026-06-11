@@ -106,7 +106,7 @@ export default function Home() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-2.5">
         <Link href="/study">
           <motion.div
             whileHover={{ scale: 1.03 }}
@@ -149,6 +149,18 @@ export default function Home() {
             <span className="text-3xl block mb-2">💬</span>
             <h3 className="font-bold text-gray-800 text-sm font-heading">Chat</h3>
             <p className="text-[10px] text-gray-500 mt-0.5">Toothsie</p>
+          </motion.div>
+        </Link>
+
+        <Link href="/histo">
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="p-4 bg-white rounded-3xl shadow-lg border border-orange-100 text-center"
+          >
+            <span className="text-3xl block mb-2">🔬</span>
+            <h3 className="font-bold text-gray-800 text-sm font-heading">Histo</h3>
+            <p className="text-[10px] text-gray-500 mt-0.5">Slides</p>
           </motion.div>
         </Link>
       </div>

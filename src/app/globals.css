@@ -207,6 +207,88 @@
   --shadow-pink: rgba(244, 63, 94, 0.2);
 }
 
+/* ============ Theme: piyuu sunset ============ */
+.theme-piyuu-sunset {
+  --pink-50: #fff7ed;
+  --pink-100: #ffedd5;
+  --pink-200: #fed7aa;
+  --pink-300: #fdba74;
+  --pink-400: #fb923c;
+  --pink-500: #f97316;
+  --pink-600: #ea580c;
+  --pink-700: #c2410c;
+  --mint-50: #fefce8;
+  --mint-100: #fef9c3;
+  --mint-200: #fef08a;
+  --mint-300: #fde047;
+  --mint-400: #facc15;
+  --mint-500: #eab308;
+  --mint-600: #ca8a04;
+  --mint-700: #a16207;
+  --purple-50: #fef2f2;
+  --purple-100: #fee2e2;
+  --purple-200: #fecaca;
+  --purple-300: #fca5a5;
+  --purple-400: #f87171;
+  --purple-500: #ef4444;
+  --purple-600: #dc2626;
+  --purple-700: #b91c1c;
+  --gray-50: #fefaf5;
+  --gray-100: #fdf3e8;
+  --gray-200: #fae4cc;
+  --gray-300: #f0cea8;
+  --gray-400: #c4a882;
+  --gray-500: #9a8264;
+  --gray-600: #6a5742;
+  --gray-700: #4a3d2e;
+  --gray-800: #2e261c;
+  --gray-900: #1a1510;
+  --surface: #fffaf5;
+  --surface-glass: rgba(255, 250, 245, 0.85);
+  --shadow-pink: rgba(249, 115, 22, 0.2);
+}
+
+/* ============ Theme: piyuu forest ============ */
+.theme-piyuu-forest {
+  --pink-50: #f0fdf4;
+  --pink-100: #dcfce7;
+  --pink-200: #bbf7d0;
+  --pink-300: #86efac;
+  --pink-400: #4ade80;
+  --pink-500: #22c55e;
+  --pink-600: #16a34a;
+  --pink-700: #15803d;
+  --mint-50: #ecfdf5;
+  --mint-100: #d1fae5;
+  --mint-200: #a7f3d0;
+  --mint-300: #6ee7b7;
+  --mint-400: #34d399;
+  --mint-500: #10b981;
+  --mint-600: #059669;
+  --mint-700: #047857;
+  --purple-50: #f5f3ff;
+  --purple-100: #ede9fe;
+  --purple-200: #c4b5fd;
+  --purple-300: #a78bfa;
+  --purple-400: #8b5cf6;
+  --purple-500: #6d28d9;
+  --purple-600: #5b21b6;
+  --purple-700: #4c1d95;
+  --gray-50: #f4f7f4;
+  --gray-100: #e7ede7;
+  --gray-200: #ccd6cc;
+  --gray-300: #a8b8a8;
+  --gray-400: #809480;
+  --gray-500: #5c6f5c;
+  --gray-600: #425242;
+  --gray-700: #2e3e2e;
+  --gray-800: #1e2a1e;
+  --gray-900: #121a12;
+  --surface: #f4faf4;
+  --surface-glass: rgba(244, 250, 244, 0.85);
+  --shadow-pink: rgba(34, 197, 94, 0.2);
+}
+
 /* ============ Theme: piyuu ocean ============ */
 .theme-piyuu-ocean {
   --pink-50: #ecfdf5;

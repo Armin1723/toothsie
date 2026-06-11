@@ -122,7 +122,9 @@ export default function ThemePicker() {
                         t.id === 'piyuu-dark' ? 'bg-gray-800' :
                         t.id === 'piyuu-lavender' ? 'bg-purple-100' :
                         t.id === 'piyuu-rose' ? 'bg-rose-100' :
-                        'bg-blue-100'
+                        t.id === 'piyuu-ocean' ? 'bg-blue-100' :
+                        t.id === 'piyuu-sunset' ? 'bg-orange-100' :
+                        'bg-green-100'
                       }`}>
                         {t.emoji}
                       </div>

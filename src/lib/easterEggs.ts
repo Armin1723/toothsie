@@ -1,3 +1,20 @@
+export const shakeMessages = [
+  "Whoa! You shook me! I feel like I've been through a root canal! 🦷🌀",
+  "Shake it off! Sh-sh-shake it off! (Like a dental X-ray) 🎵",
+  "Earthquake detected! Your teeth are safe with me! 🌋🦷",
+  "You're rattling my fillings! ⚡🦷",
+  "The tooth fairy felt that one! 🧚‍♂️💨",
+  "Rattle rattle! Like a loose baby tooth! 👶🦷",
+  "Vibration level: Dental drill at full speed! 🦷🔊",
+  "Stop shaking! You'll dislodge my wisdom teeth! 🧠🦷",
+  "SHAKE! Like a dentist saying 'open wide' too fast! 🏃‍♂️",
+  "Your phone needs a hug after that! 🤗📱",
+  "Ouch! That was more aggressive than flossing with a rope! 🪥💀",
+  "I think I saw your tooth vibrate out of place! 😵🦷",
+  "You found the shake secret! Now go brush your teeth! 🪥✨",
+  "BZZZZT! Like a dental scaler on overdrive! 🦷💨",
+];
+
 export const piyuuuQuotes = {
   loading: [
     "Brushing up on some knowledge for you... 🪥",

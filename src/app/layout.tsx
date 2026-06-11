@@ -3,6 +3,8 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 import InstallPWA from "@/components/InstallPWA";
 import PiyuuuEasterEgg from "@/components/PiyuuuEasterEgg";
+import ShakeEasterEgg from "@/components/ShakeEasterEgg";
+import UpdateBanner from "@/components/UpdateBanner";
 import ThemePicker from "@/components/ThemePicker";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { SettingsProvider } from "@/lib/SettingsContext";
@@ -68,6 +70,8 @@ export default function RootLayout({
               <Navigation />
               <InstallPWA />
               <PiyuuuEasterEgg />
+              <ShakeEasterEgg />
+              <UpdateBanner />
               <ThemePicker />
             </div>
           </SettingsProvider>

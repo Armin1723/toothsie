@@ -163,6 +163,59 @@ Stay in character as a tiny tooth buddy helping Piyuuu study dentistry! 🦷`,
   return completion.choices[0]?.message?.content || '*Toothsie tilts head cutely, confused* 🦷❓';
 }
 
+export async function identifyHistoSlide(base64Image: string): Promise<{
+  tissue: string;
+  stain: string;
+  magnification: string;
+  features: string[];
+  description: string;
+  confidence: string;
+}> {
+  const prompt = `You are an expert oral pathologist and histologist. Analyze this histology slide image and identify:
+
+1. **Tissue type** — what specific tissue/organ is shown (e.g., "parotid gland — serous acini", "filiform papillae of tongue", "compact bone with osteons")
+2. **Stain** — what stain was likely used (e.g., H&E, Masson's Trichrome, PAS)
+3. **Estimated magnification** (e.g., 40x, 100x, 400x)
+4. **Key histological features** — 3-5 specific structures visible
+5. **Brief educational description** — 1-2 sentences for a BDS dental student
+6. **Confidence** — how certain you are (high/medium/low)
+
+Respond ONLY with valid JSON:
+{"tissue":"...","stain":"...","magnification":"...","features":["...","..."],"description":"...","confidence":"high|medium|low"}`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: base64Image } },
+        ] as any,
+      },
+    ],
+    temperature: 0.3,
+    top_p: 0.95,
+    max_tokens: 1024,
+  } as any);
+
+  const content = completion.choices[0]?.message?.content || '{}';
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    return JSON.parse(content);
+  } catch {
+    return {
+      tissue: 'Unable to identify',
+      stain: 'Unknown',
+      magnification: 'Unknown',
+      features: ['Could not analyze the image clearly'],
+      description: 'The image could not be analyzed. Please try a clearer photo of the slide.',
+      confidence: 'low',
+    };
+  }
+}
+
 export function getUsageStats(usage: { api_calls: number; tokens_used: number }) {
   return {
     used: usage.api_calls,

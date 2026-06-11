@@ -8,6 +8,8 @@ export const THEMES = [
   { id: 'piyuu-lavender', label: 'Piyuu Lavender', emoji: '💜', desc: 'Soft lavender' },
   { id: 'piyuu-rose', label: 'Piyuu Rose', emoji: '🌹', desc: 'Warm rose' },
   { id: 'piyuu-ocean', label: 'Piyuu Ocean', emoji: '🌊', desc: 'Ocean blues' },
+  { id: 'piyuu-sunset', label: 'Piyuu Sunset', emoji: '🌅', desc: 'Warm sunset' },
+  { id: 'piyuu-forest', label: 'Piyuu Forest', emoji: '🌲', desc: 'Forest green' },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]['id'];
