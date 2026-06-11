@@ -54,6 +54,7 @@ export async function initializeDatabase() {
     updated_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   await sql`ALTER TABLE exam_plans ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE exam_plans ADD COLUMN IF NOT EXISTS study_content TEXT NOT NULL DEFAULT '{}'`;
 
   await sql`CREATE TABLE IF NOT EXISTS histo_identifications (
     id SERIAL PRIMARY KEY,
@@ -261,4 +262,19 @@ export async function updateExamProgress(id: number, progressData: object) {
 export async function softDeleteExamPlan(id: number) {
   await ensureDb();
   await sql`UPDATE exam_plans SET deleted_at = NOW() WHERE id = ${id}`;
+}
+
+export async function updateStudyContent(id: number, studyContent: Record<string, string[]>) {
+  await ensureDb();
+  await sql`UPDATE exam_plans SET study_content = ${JSON.stringify(studyContent)}, updated_at = NOW() WHERE id = ${id}`;
+}
+
+export async function appendStudyContent(id: number, topicName: string, newParagraphs: string[]) {
+  await ensureDb();
+  const rows = await sql`SELECT study_content FROM exam_plans WHERE id = ${id}`;
+  const current: Record<string, string[]> = (rows[0] as any)?.study_content
+    ? JSON.parse((rows[0] as any).study_content)
+    : {};
+  current[topicName] = [...(current[topicName] || []), ...newParagraphs];
+  await sql`UPDATE exam_plans SET study_content = ${JSON.stringify(current)}, updated_at = NOW() WHERE id = ${id}`;
 }

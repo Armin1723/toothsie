@@ -233,56 +233,38 @@ export function getUsageStats(usage: { api_calls: number; tokens_used: number })
 }
 
 export async function generateExamPlan(paperName: string): Promise<{
-  topics: { name: string; description: string; keyPoints: string[]; studyTime: string }[];
-  resources: { type: string; title: string; description: string }[];
+  topics: { name: string; description: string; keyPoints: string[]; studyTime: string; resource?: { title: string; url?: string }; content?: string[] }[];
+  resources: { type: string; title: string; description: string; url?: string }[];
   quiz: { question: string; options: string[]; correct: number; explanation: string }[];
   checklist: { item: string; phase: string }[];
 }> {
-  const prompt = `You are a senior dental education curriculum planner. A BDS student needs a complete study plan for their exam paper: "${paperName}".
+  const prompt = `You are a senior BDS exam planner. Create a study plan for "${paperName}".
 
-Generate a comprehensive, structured study plan in valid JSON. Be thorough — this is an exam prep plan.
-
-Return EXACTLY this JSON structure (no markdown, no code fences):
+Return ONLY valid JSON. No markdown, no code fences.
 
 {
   "topics": [
     {
       "name": "Topic name",
-      "description": "2-3 sentence overview of what this topic covers and why it matters",
-      "keyPoints": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
-      "studyTime": "Estimated hours (e.g. '3-4 hours')"
+      "description": "Brief overview",
+      "keyPoints": ["Point 1", "Point 2", "Point 3"],
+      "studyTime": "X hours",
+      "resource": { "title": "Suggested textbook chapter or article title", "url": "" },
+      "content": ["1 sentence summary of the topic."]
     }
   ],
   "resources": [
-    {
-      "type": "Textbook | YouTube | Website | Research Paper | App",
-      "title": "Resource name with author/channel if applicable",
-      "description": "Why this resource is useful for this paper"
-    }
+    { "type": "Textbook", "title": "Title", "description": "Why useful", "url": "" }
   ],
   "quiz": [
-    {
-      "question": "Multiple choice question relevant to the paper",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correct": 0,
-      "explanation": "Brief explanation of why this answer is correct"
-    }
+    { "question": "MCQ?", "options": ["A","B","C","D"], "correct": 0, "explanation": "Why" }
   ],
   "checklist": [
-    {
-      "item": "Specific actionable study task",
-      "phase": "Week 1 | Week 2 | Week 3 | Week 4 | Revision | Ongoing"
-    }
+    { "item": "Task", "phase": "Week 1" }
   ]
 }
 
-Requirements:
-- Generate 8-12 relevant topics based on the paper name
-- Generate 5-8 resources with a mix of types
-- Generate 10-15 quiz questions covering the topics
-- Generate 15-20 checklist items across different phases
-- All content must be specific to "${paperName}" for BDS dentistry
-- Include clinical correlations and exam-focused content`;
+Generate: 5-8 topics, 3-5 resources, 5-8 quiz questions, 8-12 checklist items. Keep content field to 1 sentence per topic.`;
 
   const completion = await openai.chat.completions.create({
     model: MODEL,
@@ -294,16 +276,62 @@ Requirements:
   } as any);
 
   const content = completion.choices[0]?.message?.content || '{}';
+
+  const extractJson = (raw: string): any => {
+    const braceMatch = raw.match(/\{[\s\S]*\}/);
+    if (!braceMatch) throw new Error('No JSON object found');
+    return JSON.parse(braceMatch[0]);
+  };
+
   let parsed: any;
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
-    else parsed = JSON.parse(content);
-    if (!parsed.topics || !parsed.quiz || !parsed.checklist || !parsed.resources) {
-      throw new Error('Missing required fields in exam plan');
-    }
-    return parsed;
+    parsed = extractJson(content);
   } catch {
-    throw new Error('Failed to parse exam plan from AI response');
+    const cleaned = content
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*$/gm, '')
+      .replace(/```/g, '')
+      .trim();
+    try {
+      parsed = extractJson(cleaned);
+    } catch {
+      throw Object.assign(new Error('Failed to parse exam plan'), { status: 422 });
+    }
+  }
+
+  return {
+    topics: Array.isArray(parsed?.topics) ? parsed.topics.slice(0, 12) : [{ name: paperName, description: 'Core subject', keyPoints: ['Review syllabus'], studyTime: '4 hours' }],
+    resources: Array.isArray(parsed?.resources) ? parsed.resources.slice(0, 8) : [{ type: 'Textbook', title: `${paperName} Textbook`, description: 'Standard reference' }],
+    quiz: Array.isArray(parsed?.quiz) ? parsed.quiz.slice(0, 15) : [{ question: `Key concept in ${paperName}?`, options: ['Review notes', 'Skip', 'Ask professor', 'Read textbook'], correct: 0, explanation: 'Always review your notes first' }],
+    checklist: Array.isArray(parsed?.checklist) ? parsed.checklist.slice(0, 20) : [{ item: `Review ${paperName} syllabus`, phase: 'Week 1' }],
+  };
+}
+
+export async function generateTopicContent(paperName: string, topicName: string, existingContent: string[] = []): Promise<string[]> {
+  const prompt = `You are a BDS professor giving a detailed lecture on "${topicName}" for the exam paper "${paperName}".
+
+Write 3-5 paragraphs of educational content. Each paragraph should be 3-5 sentences covering key facts, clinical correlations, and exam-relevant details.
+
+${existingContent.length > 0 ? `The student has already studied this content, so provide NEW information that builds on it:\n${existingContent.map((p, i) => `[${i + 1}] ${p}`).join('\n')}\n` : ''}
+
+Return ONLY a JSON array of strings, each string is one paragraph. No markdown, no code fences. Example:
+["Paragraph 1...", "Paragraph 2...", "Paragraph 3..."]`;
+
+  const completion = await openai.chat.completions.create({
+    model: MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+    top_p: 0.95,
+    max_tokens: 2048,
+    stream: false,
+  } as any);
+
+  const content = completion.choices[0]?.message?.content || '[]';
+  try {
+    const arrMatch = content.match(/\[[\s\S]*\]/);
+    if (arrMatch) return JSON.parse(arrMatch[0]);
+    return JSON.parse(content);
+  } catch {
+    return [`Detailed notes on ${topicName} — consult your ${paperName} textbook for comprehensive coverage.`];
   }
 }

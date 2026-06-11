@@ -5,12 +5,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ToothMascot from '@/components/ToothMascot';
 import ErrorState from '@/components/ErrorState';
 
+interface Topic {
+  name: string;
+  description: string;
+  keyPoints: string[];
+  studyTime: string;
+  resource?: { title: string; url?: string };
+  content?: string[];
+}
+
+interface Resource {
+  type: string;
+  title: string;
+  description: string;
+  url?: string;
+}
+
 interface ExamPlan {
   id: number;
   paper_name: string;
   plan_data: {
-    topics: { name: string; description: string; keyPoints: string[]; studyTime: string }[];
-    resources: { type: string; title: string; description: string }[];
+    topics: Topic[];
+    resources: Resource[];
     quiz: { question: string; options: string[]; correct: number; explanation: string }[];
     checklist: { item: string; phase: string }[];
   };
@@ -20,6 +36,7 @@ interface ExamPlan {
     studySessions: number;
     currentTopic: string;
   };
+  study_content?: Record<string, string[]>;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +68,10 @@ export default function ExamPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [planToDelete, setPlanToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [studyContent, setStudyContent] = useState<Record<string, string[]>>({});
+  const [fetchingTopic, setFetchingTopic] = useState<string | null>(null);
+  const [speakingTopic, setSpeakingTopic] = useState<string | null>(null);
+  const [deletingPara, setDeletingPara] = useState<{ topic: string; idx: number } | null>(null);
 
   useEffect(() => {
     fetch('/api/exam/plan').then(r => r.json()).then(d => setPlans(d.plans || []));
@@ -82,6 +103,7 @@ export default function ExamPage() {
         setError({ type: data.error, message: data.message });
       } else {
         setActivePlan(data.plan);
+        setStudyContent(data.plan.study_content || {});
         setPlans(prev => [data.plan, ...prev]);
         setPaperName('');
         setQuizAnswers({});
@@ -97,6 +119,7 @@ export default function ExamPage() {
 
   const loadPlan = (plan: ExamPlan) => {
     setActivePlan(plan);
+    setStudyContent(plan.study_content || {});
     setShowHistory(false);
     setQuizAnswers({});
     setQuizSubmitted(false);
@@ -165,6 +188,59 @@ export default function ExamPage() {
     setDeleting(false);
     setShowDeleteModal(false);
     setPlanToDelete(null);
+  };
+
+  const fetchMoreContent = async (topicName: string) => {
+    if (!activePlan || fetchingTopic) return;
+    setFetchingTopic(topicName);
+    try {
+      const res = await fetch(`/api/exam/plan/${activePlan.id}/content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicName }),
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setStudyContent(prev => ({
+          ...prev,
+          [topicName]: [...(prev[topicName] || []), ...data.paragraphs],
+        }));
+      }
+    } catch {}
+    setFetchingTopic(null);
+  };
+
+  const readAloud = (topicName: string, content: string[]) => {
+    if (speakingTopic === topicName) {
+      window.speechSynthesis.cancel();
+      setSpeakingTopic(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(content.join('. '));
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+    utterance.onend = () => setSpeakingTopic(null);
+    utterance.onerror = () => setSpeakingTopic(null);
+    setSpeakingTopic(topicName);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const deleteParagraph = async (topicName: string, idx: number) => {
+    const current = studyContent[topicName] || [];
+    if (idx < 0 || idx >= current.length) return;
+    const updated = [...current.slice(0, idx), ...current.slice(idx + 1)];
+    const newStudyContent = { ...studyContent, [topicName]: updated };
+    setStudyContent(newStudyContent);
+    if (activePlan) {
+      try {
+        await fetch(`/api/exam/plan/${activePlan.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ study_content: newStudyContent }),
+        });
+      } catch {}
+    }
   };
 
   const plan = activePlan;
@@ -286,38 +362,99 @@ export default function ExamPage() {
             <div className="space-y-2">
               {topics.map((topic, i) => {
                 const done = completedTopics.includes(topic.name);
+                const allContent = [...(topic.content || []), ...(studyContent[topic.name] || [])];
                 return (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer ${done ? 'bg-mint-50/50 border-mint-200' : 'glass border-gray-100 hover:border-pink-200'}`}
-                    onClick={() => toggleTopic(topic.name)}
+                    className={`p-4 rounded-2xl border transition-all ${done ? 'bg-mint-50/50 border-mint-200' : 'glass border-gray-100'}`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div
+                      className="flex items-start gap-3 cursor-pointer"
+                      onClick={() => toggleTopic(topic.name)}
+                    >
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${done ? 'bg-mint-400 border-mint-400' : 'border-gray-300'}`}>
                         {done && <span className="text-white text-[10px]">✓</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-bold ${done ? 'text-mint-700' : 'text-gray-800'}`}>{topic.name}</p>
                         <p className="text-[11px] text-gray-500 mt-1">{topic.description}</p>
-                        {topic.keyPoints.length > 0 && (
-                          <details className="mt-2">
-                            <summary className="text-[10px] text-pink-500 font-medium cursor-pointer">Key points</summary>
-                            <ul className="mt-1.5 space-y-0.5">
-                              {topic.keyPoints.map((kp, j) => (
-                                <li key={j} className="text-[11px] text-gray-600 flex gap-1.5">
-                                  <span className="text-pink-300">•</span>
-                                  {kp}
-                                </li>
-                              ))}
-                            </ul>
-                          </details>
-                        )}
-                        <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-medium bg-pink-50 text-pink-500">{topic.studyTime}</span>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-medium bg-pink-50 text-pink-500">{topic.studyTime}</span>
+                          {topic.resource?.title && (
+                            <a
+                              href={`https://www.google.com/search?q=${encodeURIComponent(topic.resource.title + ' ' + topic.resource.url || '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
+                            >
+                              📖 {topic.resource.title}
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Study content */}
+                    {allContent.length > 0 && (
+                      <details className="mt-3">
+                        <summary className="text-[10px] text-pink-500 font-medium cursor-pointer hover:text-pink-600 transition-colors">
+                          📝 Study Notes ({allContent.length} paragraphs)
+                        </summary>
+                        <div className="flex gap-1.5 mt-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); readAloud(topic.name, allContent); }}
+                            className={`px-3 py-1 rounded-xl text-[10px] font-semibold transition-all ${
+                              speakingTopic === topic.name
+                                ? 'bg-red-100 text-red-600'
+                                : 'bg-mint-100 text-mint-700 hover:bg-mint-200'
+                            }`}
+                          >
+                            {speakingTopic === topic.name ? '⏹ Stop' : '🔊 Read Aloud'}
+                          </button>
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          {allContent.map((para, j) => (
+                            <div key={j} className="group flex items-start gap-1.5">
+                              <p className="flex-1 text-[12px] text-gray-700 leading-relaxed">{para}</p>
+                              {j >= (topic.content || []).length && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); deleteParagraph(topic.name, j - (topic.content || []).length); }}
+                                  className="shrink-0 w-5 h-5 rounded-full bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-all mt-0.5"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <motion.button
+                          whileTap={{ scale: 0.97 }}
+                          onClick={(e) => { e.stopPropagation(); fetchMoreContent(topic.name); }}
+                          disabled={fetchingTopic === topic.name}
+                          className="mt-2 w-full py-2 rounded-xl text-[10px] font-semibold bg-pink-50 text-pink-600 hover:bg-pink-100 transition-all disabled:opacity-50"
+                        >
+                          {fetchingTopic === topic.name ? '⏳ Fetching more...' : '➕ Fetch More Study Content'}
+                        </motion.button>
+                      </details>
+                    )}
+
+                    {topic.keyPoints.length > 0 && (
+                      <details className="mt-2">
+                        <summary className="text-[10px] text-pink-500 font-medium cursor-pointer">Key points</summary>
+                        <ul className="mt-1.5 space-y-0.5">
+                          {topic.keyPoints.map((kp, j) => (
+                            <li key={j} className="text-[11px] text-gray-600 flex gap-1.5">
+                              <span className="text-pink-300">•</span>
+                              {kp}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
                   </motion.div>
                 );
               })}
@@ -327,26 +464,38 @@ export default function ExamPage() {
           {/* Resources tab */}
           {tab === 'resources' && (
             <div className="space-y-2">
-              {resources.map((r, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="p-4 glass rounded-2xl border border-gray-100"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg shrink-0">
-                      {r.type === 'Textbook' ? '📖' : r.type === 'YouTube' ? '📺' : r.type === 'Website' ? '🌐' : r.type === 'Research Paper' ? '📄' : r.type === 'App' ? '📱' : '📌'}
-                    </span>
-                    <div>
-                      <p className="text-sm font-bold text-gray-800">{r.title}</p>
-                      <p className="text-[10px] text-pink-500 font-medium">{r.type}</p>
-                      <p className="text-[11px] text-gray-500 mt-1">{r.description}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+              {resources.map((r, i) => {
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(r.title + ' ' + (r.url || '') + ' BDS dentistry')}`;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <a
+                      href={searchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-4 glass rounded-2xl border border-gray-100 hover:border-pink-200 hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg shrink-0">
+                          {r.type === 'Textbook' ? '📖' : r.type === 'YouTube' ? '📺' : r.type === 'Website' ? '🌐' : r.type === 'Research Paper' ? '📄' : r.type === 'App' ? '📱' : '📌'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-bold text-gray-800">{r.title}</p>
+                            <span className="shrink-0 text-[10px] opacity-40">↗</span>
+                          </div>
+                          <p className="text-[10px] text-pink-500 font-medium">{r.type}</p>
+                          <p className="text-[11px] text-gray-500 mt-1">{r.description}</p>
+                        </div>
+                      </div>
+                    </a>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
 

@@ -4,7 +4,13 @@ import { generateExamPlan, getUsageStats } from '@/lib/ai';
 
 export async function GET() {
   const plans = await getExamPlans();
-  return NextResponse.json({ plans });
+  const parsed = (plans as any[]).map(p => ({
+    ...p,
+    plan_data: typeof p.plan_data === 'string' ? JSON.parse(p.plan_data) : p.plan_data,
+    progress_data: p.progress_data ? (typeof p.progress_data === 'string' ? JSON.parse(p.progress_data) : p.progress_data) : {},
+    study_content: p.study_content ? (typeof p.study_content === 'string' ? JSON.parse(p.study_content) : p.study_content) : {},
+  }));
+  return NextResponse.json({ plans: parsed });
 }
 
 export async function POST(request: NextRequest) {
@@ -25,6 +31,7 @@ export async function POST(request: NextRequest) {
         paper_name: saved.paper_name,
         plan_data: typeof saved.plan_data === 'string' ? JSON.parse(saved.plan_data) : saved.plan_data,
         progress_data: saved.progress_data ? (typeof saved.progress_data === 'string' ? JSON.parse(saved.progress_data) : saved.progress_data) : {},
+        study_content: saved.study_content ? (typeof saved.study_content === 'string' ? JSON.parse(saved.study_content) : saved.study_content) : {},
         created_at: saved.created_at,
         updated_at: saved.updated_at,
       },
@@ -40,9 +47,16 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
+    if (error?.status === 422) {
+      return NextResponse.json({
+        error: 'generation_failed',
+        message: "The AI couldn't structure the study plan. Try a different paper name or try again 🦷",
+      }, { status: 422 });
+    }
+
     return NextResponse.json({
       error: 'generation_failed',
-      message: "Oops! Our study planner stumbled! Let's try again 🦷",
+      message: "Our study planner stumbled! Try again in a moment 🦷",
     }, { status: 500 });
   }
 }
