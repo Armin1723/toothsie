@@ -194,7 +194,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-2 space-y-3 flex flex-col h-[calc(100dvh-5rem)]">
+    <div className="px-4 pt-4 pb-2 space-y-3 flex flex-col h-[100dvh]">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

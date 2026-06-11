@@ -6,6 +6,7 @@ import PiyuuuEasterEgg from "@/components/PiyuuuEasterEgg";
 import ShakeEasterEgg from "@/components/ShakeEasterEgg";
 import SplashScreen from "@/components/SplashScreen";
 import UpdateBanner from "@/components/UpdateBanner";
+import PinGate from "@/components/PinGate";
 import ThemePicker from "@/components/ThemePicker";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { SettingsProvider } from "@/lib/SettingsContext";
@@ -63,21 +64,23 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-screen pb-20">
-        <ThemeProvider>
-          <SettingsProvider>
-            <div className="max-w-lg mx-auto relative min-h-screen">
-              {children}
-              <Navigation />
-              <InstallPWA />
-              <SplashScreen />
-              <PiyuuuEasterEgg />
-              <ShakeEasterEgg />
-              <UpdateBanner />
-              <ThemePicker />
-            </div>
-          </SettingsProvider>
-        </ThemeProvider>
+      <body className="min-h-[100dvh] pb-16" style={{ background: 'linear-gradient(to bottom, var(--pink-100, #fce7f3), var(--background, #fdf2f8), var(--mint-50, #f0fdf9))' }}>
+        <SplashScreen />
+        <PinGate>
+          <ThemeProvider>
+            <SettingsProvider>
+              <div className="max-w-lg mx-auto relative min-h-[100dvh]">
+                {children}
+                <Navigation />
+                <InstallPWA />
+                <PiyuuuEasterEgg />
+                <ShakeEasterEgg />
+                <UpdateBanner />
+                <ThemePicker />
+              </div>
+            </SettingsProvider>
+          </ThemeProvider>
+        </PinGate>
       </body>
     </html>
   );

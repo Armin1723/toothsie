@@ -132,7 +132,7 @@ export default function Home() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Link href="/study">
           <motion.div
             whileHover={{ scale: 1.03 }}

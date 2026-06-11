@@ -26,6 +26,7 @@ interface IdentifyResult {
 interface IdentifyHistoryItem {
   id: number;
   result: IdentifyResult;
+  thumbnail: string;
   date: string;
 }
 
@@ -58,6 +59,7 @@ export default function HistoPage() {
   const [identifyError, setIdentifyError] = useState<string | null>(null);
   const [identifyCount, setIdentifyCount] = useState(0);
   const [history, setHistory] = useState<IdentifyHistoryItem[]>([]);
+  const [viewingHistory, setViewingHistory] = useState<IdentifyHistoryItem | null>(null);
   const [quote, setQuote] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -88,13 +90,32 @@ export default function HistoPage() {
     localStorage.setItem('piyuuu_identify_count', JSON.stringify({ date: today, count: newCount }));
   };
 
-  const saveToHistory = (result: IdentifyResult) => {
+  const saveToHistory = async (result: IdentifyResult) => {
+    // Generate a tiny thumbnail from the current image
+    let thumbnail = '';
+    if (image) {
+      const img = new Image();
+      await new Promise<void>((resolve) => {
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          const size = 80;
+          c.width = size;
+          c.height = (img.height / img.width) * size;
+          c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+          thumbnail = c.toDataURL('image/jpeg', 0.3);
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = image;
+      });
+    }
     const item: IdentifyHistoryItem = {
       id: Date.now(),
       result,
+      thumbnail,
       date: new Date().toLocaleString(),
     };
-    const updated = [item, ...history].slice(0, 20); // keep last 20
+    const updated = [item, ...history].slice(0, 20);
     setHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
   };
@@ -404,54 +425,87 @@ export default function HistoPage() {
             </div>
           )}
 
-          {/* Upload area */}
-          {!image && (
+          {/* Upload area / History grid */}
+          {!image && !viewingHistory && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex-1 flex flex-col items-center justify-center gap-4"
+              className="flex-1 flex flex-col"
             >
-              <div className="text-center">
-                <span className="text-5xl block mb-2">🔬</span>
-                <p className="text-sm text-gray-500">Upload a histology slide photo to identify</p>
+              {history.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase">Past Analyses</p>
+                    <span className="text-[10px] text-gray-300">{history.length} saved</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {history.map(item => (
+                      <motion.button
+                        key={item.id}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setViewingHistory(item)}
+                        className="aspect-square rounded-2xl overflow-hidden border-2 border-pink-100 bg-white relative group"
+                      >
+                        {item.thumbnail ? (
+                          <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl bg-pink-50">🔬</div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                <div className="text-center">
+                  <span className="text-5xl block mb-2">🔬</span>
+                  <p className="text-sm text-gray-500">Upload a histology slide photo to identify</p>
+                </div>
+                <div className="flex gap-3 w-full max-w-xs">
+                  <button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.capture = 'environment';
+                      input.onchange = (e: Event) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) handleFile(file);
+                      };
+                      input.click();
+                    }}
+                    className="flex-1 flex flex-col items-center gap-2 p-5 bg-white rounded-3xl border-2 border-dashed border-pink-200 hover:border-pink-400 transition-colors"
+                  >
+                    <span className="text-3xl">📸</span>
+                    <span className="text-xs font-bold text-gray-700">Camera</span>
+                  </button>
+                  <button
+                    onClick={() => inputRef.current?.click()}
+                    className="flex-1 flex flex-col items-center gap-2 p-5 bg-white rounded-3xl border-2 border-dashed border-pink-200 hover:border-pink-400 transition-colors"
+                  >
+                    <span className="text-3xl">🖼️</span>
+                    <span className="text-xs font-bold text-gray-700">Gallery</span>
+                  </button>
+                </div>
+                <div className="text-[10px] text-gray-400 bg-pink-50 px-3 py-1.5 rounded-full">
+                  JPEG / PNG • Compressed to save storage
+                </div>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
               </div>
-              <div className="flex gap-3 w-full max-w-xs">
-                <button
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.capture = 'environment';
-                    input.onchange = (e: Event) => {
-                      const file = (e.target as HTMLInputElement).files?.[0];
-                      if (file) handleFile(file);
-                    };
-                    input.click();
-                  }}
-                  className="flex-1 flex flex-col items-center gap-2 p-5 bg-white rounded-3xl border-2 border-dashed border-pink-200 hover:border-pink-400 transition-colors"
-                >
-                  <span className="text-3xl">📸</span>
-                  <span className="text-xs font-bold text-gray-700">Camera</span>
-                </button>
-                <button
-                  onClick={() => inputRef.current?.click()}
-                  className="flex-1 flex flex-col items-center gap-2 p-5 bg-white rounded-3xl border-2 border-dashed border-pink-200 hover:border-pink-400 transition-colors"
-                >
-                  <span className="text-3xl">🖼️</span>
-                  <span className="text-xs font-bold text-gray-700">Gallery</span>
-                </button>
-              </div>
-              <div className="text-[10px] text-gray-400 bg-pink-50 px-3 py-1.5 rounded-full">
-                JPEG / PNG • Compressed to save storage
-              </div>
-              <input
-                ref={inputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
             </motion.div>
+          )}
+
+          {/* Viewing old history result */}
+          {viewingHistory && !image && (
+            <ViewingResult item={viewingHistory} onBack={() => setViewingHistory(null)} />
           )}
 
           {/* Preview */}
@@ -581,12 +635,20 @@ export default function HistoPage() {
                     {history.length > 1 && (
                       <div className="mt-4">
                         <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Recent IDs</p>
-                        <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
-                          {history.slice(1, 6).map(item => (
-                            <div key={item.id} className="flex items-center gap-2 p-2 bg-white/70 rounded-xl text-xs border border-pink-50">
-                              <span className="text-gray-400 shrink-0">{item.date.split(',')[0]}</span>
-                              <span className="text-gray-700 truncate">{item.result.tissue}</span>
-                            </div>
+                        <div className="flex gap-1.5 overflow-x-auto pb-1">
+                          {history.slice(1, 8).map(item => (
+                            <motion.button
+                              key={item.id}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => { resetIdentify(); setViewingHistory(item); }}
+                              className="shrink-0 w-14 h-14 rounded-2xl overflow-hidden border-2 border-pink-100 bg-white relative"
+                            >
+                              {item.thumbnail ? (
+                                <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-lg bg-pink-50">🔬</div>
+                              )}
+                            </motion.button>
                           ))}
                         </div>
                       </div>
@@ -599,5 +661,79 @@ export default function HistoPage() {
         </motion.div>
       )}
     </div>
+  );
+}
+
+function ViewingResult({ item, onBack }: { item: IdentifyHistoryItem; onBack: () => void }) {
+  const r = item.result;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex-1 flex flex-col"
+    >
+      {/* Thumbnail */}
+      {item.thumbnail && (
+        <div className="mb-3 rounded-3xl overflow-hidden border-2 border-pink-100 max-h-[180px]">
+          <img src={item.thumbnail} alt="" className="w-full object-contain bg-white" />
+        </div>
+      )}
+
+      <div className="bg-white rounded-3xl p-4 border border-green-200 shadow-md space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🔬</span>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            r.confidence === 'high' ? 'bg-green-100 text-green-700' :
+            r.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+            'bg-gray-100 text-gray-500'
+          }`}>
+            {r.confidence.toUpperCase()} confidence
+          </span>
+          <span className="text-[10px] text-gray-400 ml-auto">{item.date}</span>
+        </div>
+
+        <div>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Tissue</p>
+          <p className="text-sm font-bold text-gray-800">{r.tissue}</p>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Stain</p>
+            <p className="text-sm font-semibold text-gray-700">{r.stain || 'Unknown'}</p>
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Magnification</p>
+            <p className="text-sm font-semibold text-gray-700">{r.magnification || 'Unknown'}</p>
+          </div>
+        </div>
+
+        {r.features.length > 0 && (
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1">Key Features</p>
+            <div className="flex flex-wrap gap-1">
+              {r.features.map((f, i) => (
+                <span key={i} className="text-[10px] bg-pink-50 text-pink-700 px-2 py-0.5 rounded-full">{f}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {r.description && (
+          <div className="p-3 bg-gradient-to-r from-mint-50 to-pink-50 rounded-2xl">
+            <p className="text-[10px] font-bold text-mint-600 mb-0.5">📝 Summary</p>
+            <p className="text-xs text-gray-600 leading-relaxed">{r.description}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2 mt-3">
+        <motion.button whileTap={{ scale: 0.97 }} onClick={onBack} className="flex-1 py-3 bg-white text-gray-700 rounded-2xl font-bold text-sm border-2 border-pink-100">← Back</motion.button>
+        <motion.button whileTap={{ scale: 0.97 }} onClick={() => {
+          const text = `🔬 Histology Identification\n\nTissue: ${r.tissue}\nStain: ${r.stain}\nMagnification: ${r.magnification}\nFeatures: ${r.features.join(', ')}\n\n${r.description}`;
+          navigator.clipboard?.writeText(text);
+        }} className="px-4 py-3 bg-gray-50 text-gray-500 rounded-2xl text-sm border border-gray-200">📋</motion.button>
+      </div>
+    </motion.div>
   );
 }

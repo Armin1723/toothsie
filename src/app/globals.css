@@ -359,9 +359,25 @@ body, .theme-transition {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Hide scrollbar for native feel */
-::-webkit-scrollbar { width: 0; height: 0; }
-* { scrollbar-width: none; }
+/* Cute themed scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pink-200, #fbcfe8);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pink-300, #f9a8d4);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pink-200, #fbcfe8) transparent;
+}
 
 /* PWA standalone mode */
 @media all and (display-mode: standalone) {
