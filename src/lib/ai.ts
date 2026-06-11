@@ -33,8 +33,13 @@ interface CaseStudy {
 export async function generateFlashcards(
   topic: string,
   context: string = '',
-  count: number = 5
+  count: number = 5,
+  eli5: boolean = false
 ): Promise<Flashcard[]> {
+  const simplicity = eli5
+    ? 'Use VERY simple language — explain like the student is a 5-year-old. Use short sentences, fun analogies, and avoid jargon. Be cute and playful! 🧒'
+    : 'Make questions progressively harder. Include clinical scenarios when possible.';
+
   const prompt = `You are a dental education expert generating flashcards for a BDS student.
 
 Topic: ${topic}
@@ -46,7 +51,7 @@ Return ONLY valid JSON array with objects containing:
 - answer: concise but complete answer
 - difficulty: "easy", "medium", or "hard"
 
-Make questions progressively harder. Include clinical scenarios when possible.
+${simplicity}
 
 Return format: [{"question":"...","answer":"...","difficulty":"easy"},...]`;
 
@@ -134,7 +139,11 @@ interface ChatMessage {
   content: string;
 }
 
-export async function generateChatResponse(messages: ChatMessage[]): Promise<string> {
+export async function generateChatResponse(messages: ChatMessage[], eli5: boolean = false): Promise<string> {
+  const eli5Note = eli5
+    ? '\n\nIMPORTANT: Explain everything like Piyuuu is 5 years old! Use very simple words, fun analogies, and cute comparisons. Pretend you are explaining dentistry to a child. Short sentences, no jargon! 🧒✨'
+    : '';
+
   const systemMessage = {
     role: 'system',
     content: `You are Toothsie 🦷, a friendly and enthusiastic dental study buddy for a BDS student named Piyuuu.
@@ -148,7 +157,7 @@ Your personality:
 - Use occasional emojis (🦷✨💪📚🩺) but not too many
 - If you don't know something, admit it cutely and suggest asking a professor
 
-Stay in character as a tiny tooth buddy helping Piyuuu study dentistry! 🦷`,
+Stay in character as a tiny tooth buddy helping Piyuuu study dentistry! 🦷${eli5Note}`,
   };
 
   const completion = await openai.chat.completions.create({
@@ -221,4 +230,80 @@ export function getUsageStats(usage: { api_calls: number; tokens_used: number })
     used: usage.api_calls,
     tokens_used: usage.tokens_used,
   };
+}
+
+export async function generateExamPlan(paperName: string): Promise<{
+  topics: { name: string; description: string; keyPoints: string[]; studyTime: string }[];
+  resources: { type: string; title: string; description: string }[];
+  quiz: { question: string; options: string[]; correct: number; explanation: string }[];
+  checklist: { item: string; phase: string }[];
+}> {
+  const prompt = `You are a senior dental education curriculum planner. A BDS student needs a complete study plan for their exam paper: "${paperName}".
+
+Generate a comprehensive, structured study plan in valid JSON. Be thorough — this is an exam prep plan.
+
+Return EXACTLY this JSON structure (no markdown, no code fences):
+
+{
+  "topics": [
+    {
+      "name": "Topic name",
+      "description": "2-3 sentence overview of what this topic covers and why it matters",
+      "keyPoints": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
+      "studyTime": "Estimated hours (e.g. '3-4 hours')"
+    }
+  ],
+  "resources": [
+    {
+      "type": "Textbook | YouTube | Website | Research Paper | App",
+      "title": "Resource name with author/channel if applicable",
+      "description": "Why this resource is useful for this paper"
+    }
+  ],
+  "quiz": [
+    {
+      "question": "Multiple choice question relevant to the paper",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct": 0,
+      "explanation": "Brief explanation of why this answer is correct"
+    }
+  ],
+  "checklist": [
+    {
+      "item": "Specific actionable study task",
+      "phase": "Week 1 | Week 2 | Week 3 | Week 4 | Revision | Ongoing"
+    }
+  ]
+}
+
+Requirements:
+- Generate 8-12 relevant topics based on the paper name
+- Generate 5-8 resources with a mix of types
+- Generate 10-15 quiz questions covering the topics
+- Generate 15-20 checklist items across different phases
+- All content must be specific to "${paperName}" for BDS dentistry
+- Include clinical correlations and exam-focused content`;
+
+  const completion = await openai.chat.completions.create({
+    model: MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.6,
+    top_p: 0.95,
+    max_tokens: 8192,
+    stream: false,
+  } as any);
+
+  const content = completion.choices[0]?.message?.content || '{}';
+  let parsed: any;
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+    else parsed = JSON.parse(content);
+    if (!parsed.topics || !parsed.quiz || !parsed.checklist || !parsed.resources) {
+      throw new Error('Missing required fields in exam plan');
+    }
+    return parsed;
+  } catch {
+    throw new Error('Failed to parse exam plan from AI response');
+  }
 }

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { topic, count = 5 } = await request.json();
+    const { topic, count = 5, eli5 = false } = await request.json();
 
     if (!topic) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const context = contextEntries.map((c: any) => `${c.topic}: ${c.context_summary}`).join('\n');
 
     // Generate new flashcards
-    const flashcards = await generateFlashcards(topic, context, count);
+    const flashcards = await generateFlashcards(topic, context, count, eli5);
     await saveFlashcards(topic, flashcards);
     await incrementUsage(200);
 

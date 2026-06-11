@@ -7,7 +7,7 @@ const navItems = [
   { href: '/', label: 'Home', icon: '🏠' },
   { href: '/study', label: 'Study', icon: '📚' },
   { href: '/cases', label: 'Cases', icon: '🏥' },
-  { href: '/histo', label: 'Histo', icon: '🔬' },
+  { href: '/exam', label: 'Exam', icon: '📋' },
   { href: '/chat', label: 'Chat', icon: '💬' },
 ];
 

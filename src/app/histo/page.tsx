@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { histoSlides, shuffleSlides, CATEGORIES, type HistoSlide } from '@/data/histoSlides';
 import { compressImage } from '@/lib/compressImage';
 import { piyuuuQuotes } from '@/lib/easterEggs';
+import { useGamification } from '@/lib/GamificationContext';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -63,6 +64,7 @@ export default function HistoPage() {
   const [viewingHistory, setViewingHistory] = useState<IdentifyHistoryItem | null>(null);
   const [quote, setQuote] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const gamification = useGamification();
 
   // Load saved data
   useEffect(() => {
@@ -207,6 +209,8 @@ export default function HistoPage() {
         setIdentifyResult(data);
         saveToHistory(data);
         incrementIdentifyCount();
+        gamification.incrementStat('totalIdentifies');
+        gamification.earnXp(15);
       }
     } catch {
       setIdentifyError('Network error. Please check your connection and try again.');
@@ -289,6 +293,8 @@ export default function HistoPage() {
         localStorage.setItem('piyuuu_histo_high', quizScore.toString());
       }
       setGameState('results');
+      gamification.incrementStat('totalQuizzes');
+      gamification.earnXp(quizScore * 5); // 5 XP per correct answer
       return;
     }
     setRound(r => r + 1);

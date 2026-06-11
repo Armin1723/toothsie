@@ -45,6 +45,16 @@ export async function initializeDatabase() {
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
 
+  await sql`CREATE TABLE IF NOT EXISTS exam_plans (
+    id SERIAL PRIMARY KEY,
+    paper_name TEXT NOT NULL,
+    plan_data TEXT NOT NULL,
+    progress_data TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+  await sql`ALTER TABLE exam_plans ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`;
+
   await sql`CREATE TABLE IF NOT EXISTS histo_identifications (
     id SERIAL PRIMARY KEY,
     result TEXT NOT NULL,
@@ -220,4 +230,35 @@ export async function getTopicHistory(limit = 10) {
     ORDER BY last_accessed DESC
     LIMIT ${limit}
   `;
+}
+
+// Exam plan operations
+export async function saveExamPlan(paperName: string, planData: object) {
+  await ensureDb();
+  const rows = await sql`
+    INSERT INTO exam_plans (paper_name, plan_data) VALUES (${paperName}, ${JSON.stringify(planData)})
+    RETURNING id, paper_name, plan_data, created_at, updated_at
+  `;
+  return rows[0] as any;
+}
+
+export async function getExamPlans() {
+  await ensureDb();
+  return sql`SELECT * FROM exam_plans WHERE deleted_at IS NULL ORDER BY created_at DESC`;
+}
+
+export async function getExamPlan(id: number) {
+  await ensureDb();
+  const rows = await sql`SELECT * FROM exam_plans WHERE id = ${id}`;
+  return (rows[0] as any) || null;
+}
+
+export async function updateExamProgress(id: number, progressData: object) {
+  await ensureDb();
+  await sql`UPDATE exam_plans SET progress_data = ${JSON.stringify(progressData)}, updated_at = NOW() WHERE id = ${id}`;
+}
+
+export async function softDeleteExamPlan(id: number) {
+  await ensureDb();
+  await sql`UPDATE exam_plans SET deleted_at = NOW() WHERE id = ${id}`;
 }

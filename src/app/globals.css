@@ -359,6 +359,62 @@ body, .theme-transition {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Font overrides (applied via <html> class) */
+html.font-fredoka body,
+html.font-fredoka h1,
+html.font-fredoka h2,
+html.font-fredoka h3,
+html.font-fredoka h4,
+html.font-fredoka h5,
+html.font-fredoka h6,
+html.font-fredoka .font-heading {
+  font-family: 'Fredoka', 'Nunito', var(--font-sans), sans-serif !important;
+}
+
+html.font-nunito body,
+html.font-nunito h1,
+html.font-nunito h2,
+html.font-nunito h3,
+html.font-nunito h4,
+html.font-nunito h5,
+html.font-nunito h6,
+html.font-nunito .font-heading {
+  font-family: 'Nunito', var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+html.font-system body,
+html.font-system h1,
+html.font-system h2,
+html.font-system h3,
+html.font-system h4,
+html.font-system h5,
+html.font-system h6,
+html.font-system .font-heading {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+html.font-comic body,
+html.font-comic h1,
+html.font-comic h2,
+html.font-comic h3,
+html.font-comic h4,
+html.font-comic h5,
+html.font-comic h6,
+html.font-comic .font-heading {
+  font-family: 'Comic Neue', 'Nunito', cursive, sans-serif !important;
+}
+
+html.font-playfair body,
+html.font-playfair h1,
+html.font-playfair h2,
+html.font-playfair h3,
+html.font-playfair h4,
+html.font-playfair h5,
+html.font-playfair h6,
+html.font-playfair .font-heading {
+  font-family: 'Playfair Display', 'Nunito', serif !important;
+}
+
 /* Cute themed scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -456,3 +512,50 @@ body, .theme-transition {
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
 .animate-toast { animation: toast-in 0.3s ease-out; }
+
+/* Glassmorphism utility */
+.glass {
+  background: var(--surface-glass, rgba(255, 255, 255, 0.7));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pink-100, rgba(255, 255, 255, 0.3));
+}
+
+.glass-strong {
+  background: var(--surface-glass, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--pink-100, rgba(255, 255, 255, 0.4));
+}
+
+/* Card glow effect */
+.card-glow {
+  position: relative;
+}
+.card-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--pink-200, #fbcfe8), var(--mint-200, #99f6e0), var(--purple-200, #e9d5ff));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+.card-glow:hover::before {
+  opacity: 0.6;
+}
+
+/* Gradient text utility */
+.text-gradient {
+  background: linear-gradient(135deg, var(--pink-500, #ec4899), var(--mint-500, #14b8a6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* XP bar animation */
+@keyframes xp-fill {
+  from { width: 0%; }
+}
+.animate-xp-fill { animation: xp-fill 0.8s ease-out forwards; }

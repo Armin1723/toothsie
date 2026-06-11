@@ -4,7 +4,7 @@ import { generateChatResponse, getUsageStats } from '@/lib/ai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, history, conversationId } = await request.json();
+    const { message, history, conversationId, eli5 = false } = await request.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: message },
     ];
 
-    const reply = await generateChatResponse(conversation);
+    const reply = await generateChatResponse(conversation, eli5);
     await incrementUsage(150);
 
     // Persist messages if conversationId is provided

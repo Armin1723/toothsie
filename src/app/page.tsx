@@ -7,6 +7,7 @@ import ToothMascot from '@/components/ToothMascot';
 import UsageBar from '@/components/UsageBar';
 import { useTimeBasedMessage, useStudyStreak, useConsoleEasterEgg } from '@/lib/useEasterEggs';
 import { piyuuuQuotes } from '@/lib/easterEggs';
+import { useGamification } from '@/lib/GamificationContext';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -22,6 +23,17 @@ interface Topic {
   cardCount: number;
 }
 
+const QUICK_ACTIONS = [
+  { href: '/study', icon: '📚', label: 'Study', desc: 'Flashcards', color: 'from-pink-100 to-pink-50', border: 'border-pink-200' },
+  { href: '/cases', icon: '🏥', label: 'Cases', desc: 'Clinical', color: 'from-mint-100 to-mint-50', border: 'border-mint-200' },
+  { href: '/chat', icon: '💬', label: 'Chat', desc: 'Toothsie', color: 'from-purple-100 to-purple-50', border: 'border-purple-200' },
+  { href: '/histo', icon: '🔬', label: 'Histo', desc: 'Slides', color: 'from-orange-100 to-orange-50', border: 'border-orange-200' },
+  { href: '/drug-calculator', icon: '💊', label: 'Drug Calc', desc: 'Dosages', color: 'from-blue-100 to-blue-50', border: 'border-blue-200' },
+  { href: '/tooth-chart', icon: '🦷', label: 'Odontogram', desc: 'Tooth Chart', color: 'from-yellow-100 to-yellow-50', border: 'border-yellow-200' },
+  { href: '/exam', icon: '📋', label: 'Exam Mode', desc: 'Study Plans', color: 'from-red-100 to-red-50', border: 'border-red-200' },
+  { href: '/radiology', icon: '🩻', label: 'Radiology', desc: 'X-rays', color: 'from-indigo-100 to-indigo-50', border: 'border-indigo-200' },
+];
+
 export default function Home() {
   const [stats, setStats] = useState<UsageStats | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -32,6 +44,7 @@ export default function Home() {
 
   const timeMessage = useTimeBasedMessage();
   const { streak } = useStudyStreak();
+  const gamification = useGamification();
   useConsoleEasterEgg();
 
   useEffect(() => {
@@ -74,7 +87,7 @@ export default function Home() {
   };
 
   return (
-    <div className="px-4 py-6 space-y-6">
+    <div className="px-4 py-6 space-y-5">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -86,10 +99,34 @@ export default function Home() {
             <ToothMascot mood={getMascotMood()} size="lg" showSparkles message="Let's study!" />
           </div>
         </div>
-        <h1 className="mt-4 text-2xl font-bold text-gray-800">
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mt-4 text-2xl font-bold text-gray-800"
+        >
           {greeting}, Piyuuu! 💖
-        </h1>
+        </motion.h1>
         <p className="text-gray-500 text-sm mt-1">{getSubtitle()}</p>
+
+        {/* Level + XP badge */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.15 }}
+          className="inline-flex items-center gap-2 mt-3 px-4 py-1.5 glass rounded-full"
+        >
+          <span className="text-sm">⭐</span>
+          <span className="text-xs font-bold text-gray-700">Lv.{gamification.level}</span>
+          <span className="text-[10px] text-gray-400">{gamification.xp.toLocaleString()} XP</span>
+          {gamification.dailyLoginStreak >= 2 && (
+            <>
+              <span className="text-gray-200">|</span>
+              <span className="text-xs">🔥</span>
+              <span className="text-[10px] font-semibold text-pink-500">{gamification.dailyLoginStreak}d</span>
+            </>
+          )}
+        </motion.div>
 
         {/* Visit milestone */}
         <AnimatePresence>
@@ -132,73 +169,48 @@ export default function Home() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Link href="/study">
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="p-4 bg-white rounded-3xl shadow-lg border border-pink-100 text-center relative overflow-hidden"
-          >
-            {streak >= 3 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-xl rounded-tr-xl"
-              >
-                🔥 {streak}
-              </motion.div>
-            )}
-            <span className="text-3xl block mb-2">📚</span>
-            <h3 className="font-bold text-gray-800 text-sm font-heading">Study</h3>
-            <p className="text-[10px] text-gray-500 mt-0.5">Flashcards</p>
-          </motion.div>
-        </Link>
-
-        <Link href="/cases">
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="p-4 bg-white rounded-3xl shadow-lg border border-mint-100 text-center"
-          >
-            <span className="text-3xl block mb-2">🏥</span>
-            <h3 className="font-bold text-gray-800 text-sm font-heading">Cases</h3>
-            <p className="text-[10px] text-gray-500 mt-0.5">Clinical</p>
-          </motion.div>
-        </Link>
-
-        <Link href="/chat">
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="p-4 bg-white rounded-3xl shadow-lg border border-purple-100 text-center"
-          >
-            <span className="text-3xl block mb-2">💬</span>
-            <h3 className="font-bold text-gray-800 text-sm font-heading">Chat</h3>
-            <p className="text-[10px] text-gray-500 mt-0.5">Toothsie</p>
-          </motion.div>
-        </Link>
-
-        <Link href="/histo">
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="p-4 bg-white rounded-3xl shadow-lg border border-orange-100 text-center"
-          >
-            <span className="text-3xl block mb-2">🔬</span>
-            <h3 className="font-bold text-gray-800 text-sm font-heading">Histo</h3>
-            <p className="text-[10px] text-gray-500 mt-0.5">Slides</p>
-          </motion.div>
-        </Link>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+      >
+        {QUICK_ACTIONS.map(action => (
+          <Link key={action.href} href={action.href} className="h-full">
+            <motion.div
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              className={`relative p-4 glass rounded-3xl shadow-sm border ${action.border} text-center card-glow overflow-hidden h-full flex flex-col items-center justify-center`}
+            >
+              {streak >= 3 && action.href === '/study' && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-xl rounded-tr-xl"
+                >
+                  🔥 {streak}
+                </motion.div>
+              )}
+              <div className={`w-12 h-12 mx-auto mb-2 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center text-2xl`}>
+                {action.icon}
+              </div>
+              <h3 className="font-bold text-gray-800 text-sm font-heading">{action.label}</h3>
+              <p className="text-[10px] text-gray-500 mt-0.5">{action.desc}</p>
+            </motion.div>
+          </Link>
+        ))}
+      </motion.div>
 
       {/* Random dental fact */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="p-4 bg-gradient-to-r from-mint-50 to-pink-50 rounded-2xl border border-mint-100"
+        className="p-4 glass rounded-2xl border border-mint-100"
       >
-        <p className="text-xs text-gray-400 font-medium mb-1">🦷 Daily Dental Fact</p>
+        <p className="text-xs text-gray-400 font-medium mb-1 flex items-center gap-1">
+          <span>🦷</span> Daily Dental Fact
+        </p>
         <p className="text-sm text-gray-600">{randomFact}</p>
       </motion.div>
 
@@ -217,7 +229,7 @@ export default function Home() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 + i * 0.1 }}
-                className="flex items-center justify-between p-3 bg-white/80 rounded-2xl border border-pink-50"
+                className="flex items-center justify-between p-3 glass rounded-2xl"
               >
                 <span className="text-sm font-medium text-gray-700">{topic.name}</span>
                 <span className="text-xs text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">
@@ -229,7 +241,7 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* Fun footer with rotating messages */}
+      {/* Fun footer */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

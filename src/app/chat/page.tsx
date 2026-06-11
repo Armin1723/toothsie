@@ -7,6 +7,7 @@ import ErrorState from '@/components/ErrorState';
 import { useTimeBasedMessage, useConsoleEasterEgg } from '@/lib/useEasterEggs';
 import { piyuuuQuotes } from '@/lib/easterEggs';
 import { useFeedback } from '@/lib/useFeedback';
+import { useGamification } from '@/lib/GamificationContext';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -52,9 +53,11 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [eli5Mode, setEli5Mode] = useState(false);
 
   const timeMessage = useTimeBasedMessage();
   const feedback = useFeedback();
+  const gamification = useGamification();
   useConsoleEasterEgg();
 
   const handleMessagesScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -150,11 +153,12 @@ export default function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          history: history.slice(0, -1), // exclude latest user msg (API appends it)
-          conversationId: activeId,
-        }),
+          body: JSON.stringify({
+            message,
+            history: history.slice(0, -1),
+            conversationId: activeId,
+            eli5: eli5Mode,
+          }),
       });
 
       const data = await res.json();
@@ -167,6 +171,8 @@ export default function ChatPage() {
         feedback.receive();
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
         fetchConversations(); // refresh list
+        gamification.incrementStat('totalChats');
+        gamification.earnXp(2);
       }
     } catch {
       setError({ type: 'network_error' });
@@ -351,8 +357,21 @@ export default function ChatPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex gap-2 items-end"
+        className="space-y-2"
       >
+        <div className="flex items-center justify-center">
+          <button
+            onClick={() => setEli5Mode(v => !v)}
+            className={`px-4 py-1 rounded-full text-[10px] font-semibold transition-all border ${
+              eli5Mode
+                ? 'bg-mint-100 text-mint-700 border-mint-300'
+                : 'bg-gray-50 text-gray-400 border-gray-200 hover:border-mint-200'
+            }`}
+          >
+            🧒 {eli5Mode ? 'ELI5 ON — simple talk!' : 'Explain Like I\'m 5'}
+          </button>
+        </div>
+        <div className="flex gap-2 items-end">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -372,6 +391,7 @@ export default function ChatPage() {
         >
           {loading ? '⏳' : '💬'}
         </motion.button>
+        </div>
       </motion.div>
 
       {/* History sheet */}
