@@ -6,6 +6,13 @@ import Flashcard from '@/components/Flashcard';
 import ErrorState from '@/components/ErrorState';
 import ToothMascot from '@/components/ToothMascot';
 import SparkleEffect from '@/components/SparkleEffect';
+import Confetti from '@/components/Confetti';
+import { useRandomQuote, useTimeBasedMessage, useStudyStreak, useConsoleEasterEgg } from '@/lib/useEasterEggs';
+import { piyuuuQuotes } from '@/lib/easterEggs';
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 interface FlashcardData {
   question: string;
@@ -22,6 +29,14 @@ export default function StudyPage() {
   const [savedTopics, setSavedTopics] = useState<any[]>([]);
   const [showSparkle, setShowSparkle] = useState(false);
   const [activeTopic, setActiveTopic] = useState('');
+  const [completionMessage, setCompletionMessage] = useState('');
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const loadingQuote = useRandomQuote('loading');
+  const timeMessage = useTimeBasedMessage();
+  const { streak, message: streakMessage, showCelebration, incrementStreak } = useStudyStreak();
+
+  useConsoleEasterEgg();
 
   const fetchTopics = useCallback(() => {
     fetch('/api/topics').then(r => r.json()).then(data => setSavedTopics(data.topics || []));
@@ -43,6 +58,7 @@ export default function StudyPage() {
     setLoading(true);
     setError(null);
     setActiveTopic(targetTopic);
+    setCompletionMessage('');
 
     try {
       // Try cached first
@@ -52,6 +68,7 @@ export default function StudyPage() {
       if (cachedData.flashcards?.length > 0) {
         setFlashcards(cachedData.flashcards);
         setShowSparkle(true);
+        setCompletionMessage(pickRandom(piyuuuQuotes.completion));
         setLoading(false);
         return;
       }
@@ -72,6 +89,15 @@ export default function StudyPage() {
       } else {
         setFlashcards(data.flashcards);
         setShowSparkle(true);
+        incrementStreak();
+        setCompletionMessage(pickRandom(piyuuuQuotes.completion));
+
+        // Milestone celebrations
+        if ([5, 10, 15, 20, 50, 100].includes(streak + 1)) {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 4000);
+        }
+
         fetchTopics();
         fetchUsage();
       }
@@ -89,6 +115,22 @@ export default function StudyPage() {
   return (
     <div className="px-4 py-6 space-y-6">
       <SparkleEffect show={showSparkle} onComplete={() => setShowSparkle(false)} />
+      <Confetti show={showConfetti} />
+
+      {/* Streak Celebration */}
+      <AnimatePresence>
+        {showCelebration && streakMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.8 }}
+            className="fixed top-4 left-4 right-4 z-50 bg-gradient-to-r from-pink-500 to-purple-500 text-white p-4 rounded-3xl shadow-2xl text-center"
+          >
+            <p className="text-lg font-bold">🔥 Streak: {streak}!</p>
+            <p className="text-sm mt-1">{streakMessage}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Header */}
       <motion.div
@@ -96,9 +138,18 @@ export default function StudyPage() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <ToothMascot mood="thinking" size="md" message="What shall we study?" />
+        <ToothMascot mood={streak >= 5 ? 'excited' : streak >= 3 ? 'love' : 'thinking'} size="md" message="What shall we study?" />
         <h1 className="mt-2 text-xl font-bold text-gray-800">Study Buddy 📚</h1>
-        <p className="text-gray-500 text-xs">Type any dental topic and get flashcards!</p>
+        <p className="text-gray-500 text-xs">{timeMessage}</p>
+        {streak > 0 && (
+          <motion.p
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-xs text-pink-500 mt-1 font-medium"
+          >
+            🔥 {streak} topic{streak !== 1 ? 's' : ''} today!
+          </motion.p>
+        )}
       </motion.div>
 
       {/* Input */}
@@ -127,7 +178,7 @@ export default function StudyPage() {
         </motion.button>
       </motion.div>
 
-      {/* Loading state */}
+      {/* Loading state with rotating quotes */}
       <AnimatePresence>
         {loading && (
           <motion.div
@@ -137,7 +188,33 @@ export default function StudyPage() {
             className="flex flex-col items-center py-8"
           >
             <ToothMascot mood="thinking" size="md" showSparkles />
-            <p className="mt-4 text-sm text-gray-500 animate-pulse">Generating flashcards...</p>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={loadingQuote}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 text-sm text-pink-500 text-center px-4 font-medium"
+              >
+                {loadingQuote}
+              </motion.p>
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Completion message */}
+      <AnimatePresence>
+        {completionMessage && !loading && flashcards.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-center"
+          >
+            <p className="text-sm text-pink-600 font-medium bg-pink-50 py-2 px-4 rounded-full inline-block">
+              {completionMessage}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -173,6 +250,17 @@ export default function StudyPage() {
               index={i}
             />
           ))}
+
+          {/* Random dental fact after cards */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-6 p-4 bg-gradient-to-r from-mint-50 to-pink-50 rounded-2xl border border-mint-100"
+          >
+            <p className="text-xs text-gray-500 font-medium mb-1">🦷 Did you know?</p>
+            <p className="text-sm text-gray-600">{pickRandom(piyuuuQuotes.dentalFacts)}</p>
+          </motion.div>
         </motion.div>
       )}
 
@@ -211,10 +299,13 @@ export default function StudyPage() {
           transition={{ delay: 0.4 }}
           className="text-center py-8"
         >
-          <span className="text-5xl block mb-4">🦷</span>
-          <p className="text-gray-500 text-sm">
+          <ToothMascot mood="happy" size="lg" />
+          <p className="mt-4 text-gray-500 text-sm">
             Your study vault is empty!<br />
             Type a topic above to start learning 💖
+          </p>
+          <p className="mt-2 text-xs text-pink-300">
+            Try: "dental anatomy", "amoxicillin dosage", or "oral pathology"
           </p>
         </motion.div>
       )}

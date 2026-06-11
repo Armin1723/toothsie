@@ -5,6 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ErrorState from '@/components/ErrorState';
 import ToothMascot from '@/components/ToothMascot';
 import SparkleEffect from '@/components/SparkleEffect';
+import { useRandomQuote, useConsoleEasterEgg } from '@/lib/useEasterEggs';
+import { piyuuuQuotes } from '@/lib/easterEggs';
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 const DENTAL_SPECIALTIES = [
   'Oral Surgery',
@@ -50,6 +56,10 @@ export default function CasesPage() {
   const [showSaved, setShowSaved] = useState(true);
   const [showSparkle, setShowSparkle] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [completionMessage, setCompletionMessage] = useState('');
+
+  const loadingQuote = useRandomQuote('loading');
+  useConsoleEasterEgg();
 
   const fetchSavedCases = useCallback(() => {
     fetch('/api/cases?all=true').then(r => r.json()).then(data => setSavedCases(data.cases || []));
@@ -82,6 +92,7 @@ export default function CasesPage() {
       } else {
         setCurrentCase(data.case);
         setShowSparkle(true);
+        setCompletionMessage(pickRandom(piyuuuQuotes.completion));
         fetchSavedCases();
       }
     } catch (err) {
@@ -187,7 +198,17 @@ export default function CasesPage() {
             className="flex flex-col items-center py-8"
           >
             <ToothMascot mood="thinking" size="md" showSparkles />
-            <p className="mt-4 text-sm text-gray-500 animate-pulse">Creating case study...</p>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={loadingQuote}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 text-sm text-pink-500 text-center px-4 font-medium"
+              >
+                {loadingQuote}
+              </motion.p>
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
