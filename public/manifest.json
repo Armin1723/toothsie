@@ -1,18 +1,33 @@
 {
   "name": "Piyuuu's Tooth Vault",
   "short_name": "Tooth Vault",
-  "description": "Your smart dental study companion",
-  "start_url": "/",
+  "description": "Your smart dental study companion — flashcards, case studies, and an AI chat buddy for BDS students",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#fdf2f8",
   "theme_color": "#ec4899",
   "orientation": "portrait",
+  "categories": ["education", "medical", "productivity"],
+  "screenshots": [],
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

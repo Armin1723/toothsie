@@ -28,10 +28,17 @@ export default function Home() {
   const [greeting, setGreeting] = useState('');
   const [randomFact, setRandomFact] = useState('');
   const [visits, setVisits] = useState(0);
+  const [toothCompact, setToothCompact] = useState(false);
 
   const timeMessage = useTimeBasedMessage();
   const { streak } = useStudyStreak();
   useConsoleEasterEgg();
+
+  useEffect(() => {
+    const onScroll = () => setToothCompact(window.scrollY > 200);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -74,7 +81,11 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <ToothMascot mood={getMascotMood()} size="lg" showSparkles message="Let's study!" />
+        <div className="flex justify-center">
+          <div className={toothCompact ? 'invisible' : ''}>
+            <ToothMascot mood={getMascotMood()} size="lg" showSparkles message="Let's study!" />
+          </div>
+        </div>
         <h1 className="mt-4 text-2xl font-bold text-gray-800">
           {greeting}, Piyuuu! 💖
         </h1>
@@ -93,6 +104,21 @@ export default function Home() {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Floating tooth */}
+      <AnimatePresence>
+        {toothCompact && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, x: -10 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.5, x: -10 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="fixed top-3 left-3 z-50"
+          >
+            <ToothMascot mood={getMascotMood()} size="sm" />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Usage Stats */}
       {stats && (

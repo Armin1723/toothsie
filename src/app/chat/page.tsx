@@ -43,7 +43,9 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ type: string; message?: string } | null>(null);
   const [showQuickQuestions, setShowQuickQuestions] = useState(true);
+  const [toothCompact, setToothCompact] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
   // Conversation management
   const [conversationId, setConversationId] = useState<number | null>(null);
@@ -54,6 +56,10 @@ export default function ChatPage() {
   const timeMessage = useTimeBasedMessage();
   const feedback = useFeedback();
   useConsoleEasterEgg();
+
+  const handleMessagesScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setToothCompact(e.currentTarget.scrollTop > 60);
+  }, []);
 
   const fetchConversations = useCallback(async () => {
     setHistoryLoading(true);
@@ -196,7 +202,22 @@ export default function ChatPage() {
         className="text-center relative"
       >
         <div className="flex items-center justify-center gap-2">
-          <ToothMascot mood="love" size="md" message="Chat with Toothsie!" />
+          <div className={toothCompact ? 'invisible' : ''}>
+            <ToothMascot mood="love" size="md" message="Chat with Toothsie!" />
+          </div>
+          <AnimatePresence>
+            {toothCompact && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                className="fixed top-3 left-3 z-50"
+              >
+                <ToothMascot mood="love" size="sm" />
+              </motion.div>
+            )}
+          </AnimatePresence>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -223,7 +244,7 @@ export default function ChatPage() {
       </motion.div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-3 pb-2">
+      <div ref={messagesRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto space-y-3 pb-2">
         <AnimatePresence initial={false}>
           {messages.map((msg, i) => (
             <motion.div

@@ -4,6 +4,7 @@ import Navigation from "@/components/Navigation";
 import InstallPWA from "@/components/InstallPWA";
 import PiyuuuEasterEgg from "@/components/PiyuuuEasterEgg";
 import ShakeEasterEgg from "@/components/ShakeEasterEgg";
+import SplashScreen from "@/components/SplashScreen";
 import UpdateBanner from "@/components/UpdateBanner";
 import ThemePicker from "@/components/ThemePicker";
 import { ThemeProvider } from "@/lib/ThemeContext";
@@ -69,6 +70,7 @@ export default function RootLayout({
               {children}
               <Navigation />
               <InstallPWA />
+              <SplashScreen />
               <PiyuuuEasterEgg />
               <ShakeEasterEgg />
               <UpdateBanner />

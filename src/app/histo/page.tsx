@@ -99,8 +99,7 @@ export default function HistoPage() {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFile = async (file: File) => {
     if (!file) return;
     setFileName(file.name);
     setIdentifyResult(null);
@@ -111,6 +110,10 @@ export default function HistoPage() {
     } catch {
       setIdentifyError('Failed to process image. Please try another file.');
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) handleFile(e.target.files[0]);
   };
 
   const handleIdentify = async () => {
@@ -406,28 +409,48 @@ export default function HistoPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex-1 flex flex-col items-center justify-center"
+              className="flex-1 flex flex-col items-center justify-center gap-4"
             >
-              <div className="w-full max-w-xs">
-                <label className="flex flex-col items-center gap-3 p-8 bg-white rounded-3xl border-2 border-dashed border-pink-200 cursor-pointer hover:border-pink-400 transition-colors text-center">
-                  <span className="text-5xl">📸</span>
-                  <div>
-                    <p className="text-sm font-bold text-gray-700">Tap to take a photo</p>
-                    <p className="text-[10px] text-gray-400 mt-1">or select from gallery</p>
-                  </div>
-                  <div className="text-[10px] text-gray-400 bg-pink-50 px-3 py-1.5 rounded-full">
-                    JPEG / PNG • Max 5 MB
-                  </div>
-                  <input
-                    ref={inputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </label>
+              <div className="text-center">
+                <span className="text-5xl block mb-2">🔬</span>
+                <p className="text-sm text-gray-500">Upload a histology slide photo to identify</p>
               </div>
+              <div className="flex gap-3 w-full max-w-xs">
+                <button
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.capture = 'environment';
+                    input.onchange = (e: Event) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) handleFile(file);
+                    };
+                    input.click();
+                  }}
+                  className="flex-1 flex flex-col items-center gap-2 p-5 bg-white rounded-3xl border-2 border-dashed border-pink-200 hover:border-pink-400 transition-colors"
+                >
+                  <span className="text-3xl">📸</span>
+                  <span className="text-xs font-bold text-gray-700">Camera</span>
+                </button>
+                <button
+                  onClick={() => inputRef.current?.click()}
+                  className="flex-1 flex flex-col items-center gap-2 p-5 bg-white rounded-3xl border-2 border-dashed border-pink-200 hover:border-pink-400 transition-colors"
+                >
+                  <span className="text-3xl">🖼️</span>
+                  <span className="text-xs font-bold text-gray-700">Gallery</span>
+                </button>
+              </div>
+              <div className="text-[10px] text-gray-400 bg-pink-50 px-3 py-1.5 rounded-full">
+                JPEG / PNG • Compressed to save storage
+              </div>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
             </motion.div>
           )}
 
