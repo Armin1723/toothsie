@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedFlashcards, saveFlashcards, getLearningContext, getTodayUsage, incrementUsage } from '@/lib/db';
-import { generateFlashcards, canMakeApiCall, getUsageStats } from '@/lib/ai';
+import { generateFlashcards, getUsageStats } from '@/lib/ai';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
   }
 
-  const cached = getCachedFlashcards(topic) as any[];
+  const cached = await getCachedFlashcards(topic);
   if (cached.length > 0) {
     return NextResponse.json({
       flashcards: cached,
@@ -30,44 +30,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Topic is required' }, { status: 400 });
     }
 
-    const usage = getTodayUsage();
-    if (!canMakeApiCall(usage)) {
-      const stats = getUsageStats(usage);
-      return NextResponse.json({
-        error: 'daily_limit_reached',
-        message: "You've used all your study tokens for today! Come back tomorrow for more ✨",
-        stats,
-      }, { status: 429 });
-    }
-
     // Check cache first
-    const cached = getCachedFlashcards(topic) as any[];
+    const cached = await getCachedFlashcards(topic);
     if (cached.length >= count) {
       return NextResponse.json({
         flashcards: cached.slice(0, count),
         cached: true,
         count: cached.length,
-        stats: getUsageStats(getTodayUsage()),
+        stats: getUsageStats(await getTodayUsage()),
       });
     }
 
     // Get learning context for incremental learning
-    const contextEntries = getLearningContext(3);
+    const contextEntries = await getLearningContext(3);
     const context = contextEntries.map((c: any) => `${c.topic}: ${c.context_summary}`).join('\n');
 
     // Generate new flashcards
     const flashcards = await generateFlashcards(topic, context, count);
-    saveFlashcards(topic, flashcards);
-    incrementUsage(200); // Approximate tokens
+    await saveFlashcards(topic, flashcards);
+    await incrementUsage(200);
 
     return NextResponse.json({
       flashcards,
       cached: false,
       count: flashcards.length,
-      stats: getUsageStats(getTodayUsage()),
+      stats: getUsageStats(await getTodayUsage()),
     });
   } catch (error: any) {
     console.error('Flashcard generation error:', error);
+
+    if (error?.status === 429 || error?.message?.includes('rate')) {
+      return NextResponse.json({
+        error: 'rate_limited',
+        message: "Our tooth helper is a bit tired! Wait a moment and try again 🦷💤",
+      }, { status: 429 });
+    }
+
     return NextResponse.json({
       error: 'generation_failed',
       message: "Oops! Our little tooth helper tripped! Let's try again 🦷",

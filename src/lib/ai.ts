@@ -5,7 +5,6 @@ const openai = new OpenAI({
   baseURL: 'https://integrate.api.nvidia.com/v1',
 });
 
-const DAILY_LIMIT = 20;
 const MODEL = 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning';
 
 interface Flashcard {
@@ -62,7 +61,6 @@ Return format: [{"question":"...","answer":"...","difficulty":"easy"},...]`;
 
   const content = completion.choices[0]?.message?.content || '[]';
   try {
-    // Extract JSON from the response (may have markdown code blocks)
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
@@ -131,20 +129,9 @@ Return ONLY valid JSON with these fields:
   }
 }
 
-export function canMakeApiCall(usage: { api_calls: number }): boolean {
-  return usage.api_calls < DAILY_LIMIT;
-}
-
-export function getRemainingCalls(usage: { api_calls: number }): number {
-  return Math.max(0, DAILY_LIMIT - usage.api_calls);
-}
-
 export function getUsageStats(usage: { api_calls: number; tokens_used: number }) {
   return {
     used: usage.api_calls,
-    limit: DAILY_LIMIT,
-    remaining: getRemainingCalls(usage),
     tokens_used: usage.tokens_used,
-    percentage: Math.round((usage.api_calls / DAILY_LIMIT) * 100),
   };
 }

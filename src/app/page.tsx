@@ -8,9 +8,7 @@ import UsageBar from '@/components/UsageBar';
 
 interface UsageStats {
   used: number;
-  limit: number;
-  remaining: number;
-  percentage: number;
+  tokens_used: number;
 }
 
 interface Topic {

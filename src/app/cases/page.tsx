@@ -75,8 +75,8 @@ export default function CasesPage() {
 
       const data = await res.json();
 
-      if (data.error === 'daily_limit_reached') {
-        setError({ type: 'limit_reached', message: data.message });
+      if (data.error === 'rate_limited') {
+        setError({ type: 'rate_limited', message: data.message });
       } else if (data.error) {
         setError({ type: 'generation_failed', message: data.message });
       } else {

@@ -3,17 +3,17 @@ import { getAllTopics, getTopicHistory } from '@/lib/db';
 
 export async function GET() {
   try {
-    const topics = getAllTopics() as any[];
-    const history = getTopicHistory(10) as any[];
+    const topics = await getAllTopics() as any[];
+    const history = await getTopicHistory(10) as any[];
 
     return NextResponse.json({
       topics: topics.map(t => ({
         name: t.topic,
-        cardCount: t.card_count,
+        cardCount: parseInt(t.card_count) || 0,
       })),
       recentTopics: history.map(h => ({
         topic: h.topic,
-        interactionCount: h.count,
+        interactionCount: parseInt(h.count) || 0,
         lastAccessed: h.last_accessed,
       })),
     });

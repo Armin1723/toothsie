@@ -4,7 +4,7 @@ import { getUsageStats } from '@/lib/ai';
 
 export async function GET() {
   try {
-    const usage = getTodayUsage();
+    const usage = await getTodayUsage();
     const stats = getUsageStats(usage);
 
     return NextResponse.json(stats);

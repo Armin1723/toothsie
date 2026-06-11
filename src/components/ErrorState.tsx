@@ -3,16 +3,16 @@
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ErrorStateProps {
-  type: 'limit_reached' | 'generation_failed' | 'network_error' | 'not_found';
+  type: 'rate_limited' | 'generation_failed' | 'network_error' | 'not_found';
   message?: string;
   onRetry?: () => void;
 }
 
 const errorConfigs = {
-  limit_reached: {
+  rate_limited: {
     emoji: '😴',
-    title: "Time for a study break!",
-    subtitle: "You've learned enough for today. Come back tomorrow!",
+    title: "Our tooth helper is resting!",
+    subtitle: "Too many requests! Wait a minute and try again.",
     sticker: '🦷💤',
     bgClass: 'from-purple-50 to-pink-50',
   },
