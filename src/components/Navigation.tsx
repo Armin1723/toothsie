@@ -7,6 +7,7 @@ const navItems = [
   { href: '/', label: 'Home', icon: '🏠' },
   { href: '/study', label: 'Study', icon: '📚' },
   { href: '/cases', label: 'Cases', icon: '🏥' },
+  { href: '/chat', label: 'Chat', icon: '💬' },
 ];
 
 export default function Navigation() {
@@ -28,7 +29,7 @@ export default function Navigation() {
               }`}
             >
               <span className="text-xl mb-0.5">{item.icon}</span>
-              <span className="text-[10px] font-semibold">{item.label}</span>
+              <span className="text-[10px] font-heading font-semibold">{item.label}</span>
               {isActive && (
                 <div className="absolute top-1 w-8 h-1 bg-pink-500 rounded-full" />
               )}

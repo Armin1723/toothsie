@@ -3,49 +3,62 @@ import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL!);
 
 export async function initializeDatabase() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS flashcards (
-      id SERIAL PRIMARY KEY,
-      topic TEXT NOT NULL,
-      question TEXT NOT NULL,
-      answer TEXT NOT NULL,
-      difficulty TEXT DEFAULT 'medium',
-      times_reviewed INTEGER DEFAULT 0,
-      confidence INTEGER DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      last_reviewed TIMESTAMPTZ
-    );
+  await sql`CREATE TABLE IF NOT EXISTS flashcards (
+    id SERIAL PRIMARY KEY,
+    topic TEXT NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    difficulty TEXT DEFAULT 'medium',
+    times_reviewed INTEGER DEFAULT 0,
+    confidence INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    last_reviewed TIMESTAMPTZ
+  )`;
 
-    CREATE TABLE IF NOT EXISTS cases (
-      id SERIAL PRIMARY KEY,
-      specialty TEXT NOT NULL,
-      title TEXT NOT NULL,
-      case_data TEXT NOT NULL,
-      difficulty TEXT DEFAULT 'medium',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
+  await sql`CREATE TABLE IF NOT EXISTS cases (
+    id SERIAL PRIMARY KEY,
+    specialty TEXT NOT NULL,
+    title TEXT NOT NULL,
+    case_data TEXT NOT NULL,
+    difficulty TEXT DEFAULT 'medium',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
 
-    CREATE TABLE IF NOT EXISTS topic_history (
-      id SERIAL PRIMARY KEY,
-      topic TEXT NOT NULL,
-      interaction_type TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
+  await sql`CREATE TABLE IF NOT EXISTS topic_history (
+    id SERIAL PRIMARY KEY,
+    topic TEXT NOT NULL,
+    interaction_type TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
 
-    CREATE TABLE IF NOT EXISTS daily_usage (
-      id SERIAL PRIMARY KEY,
-      date TEXT NOT NULL UNIQUE,
-      api_calls INTEGER DEFAULT 0,
-      tokens_used INTEGER DEFAULT 0
-    );
+  await sql`CREATE TABLE IF NOT EXISTS daily_usage (
+    id SERIAL PRIMARY KEY,
+    date TEXT NOT NULL UNIQUE,
+    api_calls INTEGER DEFAULT 0,
+    tokens_used INTEGER DEFAULT 0
+  )`;
 
-    CREATE TABLE IF NOT EXISTS learning_context (
-      id SERIAL PRIMARY KEY,
-      topic TEXT NOT NULL,
-      context_summary TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `;
+  await sql`CREATE TABLE IF NOT EXISTS learning_context (
+    id SERIAL PRIMARY KEY,
+    topic TEXT NOT NULL,
+    context_summary TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS conversations (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL DEFAULT 'New Chat',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS messages (
+    id SERIAL PRIMARY KEY,
+    conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
 }
 
 let dbInitialized = false;
@@ -119,6 +132,55 @@ export async function getLearningContext(limit = 5) {
 export async function saveLearningContext(topic: string, summary: string) {
   await ensureDb();
   await sql`INSERT INTO learning_context (topic, context_summary) VALUES (${topic}, ${summary})`;
+}
+
+// Conversation history
+export async function createConversation(title = 'New Chat') {
+  await ensureDb();
+  const rows = await sql`
+    INSERT INTO conversations (title) VALUES (${title})
+    RETURNING id, title, created_at, updated_at
+  `;
+  return (rows[0] as any);
+}
+
+export async function updateConversationTitle(id: number, title: string) {
+  await ensureDb();
+  await sql`UPDATE conversations SET title = ${title}, updated_at = NOW() WHERE id = ${id}`;
+}
+
+export async function appendMessage(conversationId: number, role: string, content: string) {
+  await ensureDb();
+  await sql`
+    INSERT INTO messages (conversation_id, role, content) VALUES (${conversationId}, ${role}, ${content})
+  `;
+  await sql`UPDATE conversations SET updated_at = NOW() WHERE id = ${conversationId}`;
+}
+
+export async function getConversations(limit = 20) {
+  await ensureDb();
+  return sql`
+    SELECT c.id, c.title, c.created_at, c.updated_at,
+      (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as msg_count
+    FROM conversations c
+    ORDER BY c.updated_at DESC
+    LIMIT ${limit}
+  `;
+}
+
+export async function getConversation(id: number) {
+  await ensureDb();
+  const conv = await sql`SELECT * FROM conversations WHERE id = ${id}`;
+  if (!(conv as any[]).length) return null;
+  const msgs = await sql`
+    SELECT role, content, created_at FROM messages WHERE conversation_id = ${id} ORDER BY created_at ASC
+  `;
+  return { conversation: (conv as any[])[0], messages: msgs as any[] };
+}
+
+export async function deleteConversation(id: number) {
+  await ensureDb();
+  await sql`DELETE FROM conversations WHERE id = ${id}`;
 }
 
 // Topic history for recommendations

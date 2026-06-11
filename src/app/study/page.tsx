@@ -9,6 +9,7 @@ import SparkleEffect from '@/components/SparkleEffect';
 import Confetti from '@/components/Confetti';
 import { useRandomQuote, useTimeBasedMessage, useStudyStreak, useConsoleEasterEgg } from '@/lib/useEasterEggs';
 import { piyuuuQuotes } from '@/lib/easterEggs';
+import { useFeedback } from '@/lib/useFeedback';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -34,6 +35,7 @@ export default function StudyPage() {
 
   const loadingQuote = useRandomQuote('loading');
   const timeMessage = useTimeBasedMessage();
+  const feedback = useFeedback();
   const { streak, message: streakMessage, showCelebration, incrementStreak } = useStudyStreak();
 
   useConsoleEasterEgg();
@@ -87,6 +89,7 @@ export default function StudyPage() {
       } else if (data.error) {
         setError({ type: 'generation_failed', message: data.message });
       } else {
+        feedback.generate();
         setFlashcards(data.flashcards);
         setShowSparkle(true);
         incrementStreak();
@@ -248,6 +251,7 @@ export default function StudyPage() {
               answer={card.answer}
               difficulty={card.difficulty}
               index={i}
+              total={flashcards.length}
             />
           ))}
 

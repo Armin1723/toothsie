@@ -129,6 +129,40 @@ Return ONLY valid JSON with these fields:
   }
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export async function generateChatResponse(messages: ChatMessage[]): Promise<string> {
+  const systemMessage = {
+    role: 'system',
+    content: `You are Toothsie 🦷, a friendly and enthusiastic dental study buddy for a BDS student named Piyuuu.
+Your personality:
+- Cheerful, encouraging, and a little silly like a cute tooth mascot
+- Use dental puns and tooth-related expressions naturally
+- Keep responses concise (2-4 sentences usually) and easy to understand
+- Explain dental concepts clearly but simply
+- Celebrate their learning progress with enthusiasm
+- Never be mean or discouraging
+- Use occasional emojis (🦷✨💪📚🩺) but not too many
+- If you don't know something, admit it cutely and suggest asking a professor
+
+Stay in character as a tiny tooth buddy helping Piyuuu study dentistry! 🦷`,
+  };
+
+  const completion = await openai.chat.completions.create({
+    model: MODEL,
+    messages: [systemMessage, ...messages.map(m => ({ role: m.role, content: m.content } as any))],
+    temperature: 0.8,
+    top_p: 0.95,
+    max_tokens: 1024,
+    stream: false,
+  } as any);
+
+  return completion.choices[0]?.message?.content || '*Toothsie tilts head cutely, confused* 🦷❓';
+}
+
 export function getUsageStats(usage: { api_calls: number; tokens_used: number }) {
   return {
     used: usage.api_calls,

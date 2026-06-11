@@ -106,12 +106,12 @@ export default function Home() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <Link href="/study">
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="p-6 bg-white rounded-3xl shadow-lg border border-pink-100 text-center relative overflow-hidden"
+            className="p-4 bg-white rounded-3xl shadow-lg border border-pink-100 text-center relative overflow-hidden"
           >
             {streak >= 3 && (
               <motion.div
@@ -122,9 +122,9 @@ export default function Home() {
                 🔥 {streak}
               </motion.div>
             )}
-            <span className="text-4xl block mb-3">📚</span>
-            <h3 className="font-bold text-gray-800">Study Buddy</h3>
-            <p className="text-xs text-gray-500 mt-1">Flashcards & notes</p>
+            <span className="text-3xl block mb-2">📚</span>
+            <h3 className="font-bold text-gray-800 text-sm font-heading">Study</h3>
+            <p className="text-[10px] text-gray-500 mt-0.5">Flashcards</p>
           </motion.div>
         </Link>
 
@@ -132,11 +132,23 @@ export default function Home() {
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="p-6 bg-white rounded-3xl shadow-lg border border-mint-100 text-center"
+            className="p-4 bg-white rounded-3xl shadow-lg border border-mint-100 text-center"
           >
-            <span className="text-4xl block mb-3">🏥</span>
-            <h3 className="font-bold text-gray-800">Case Studies</h3>
-            <p className="text-xs text-gray-500 mt-1">Clinical cases</p>
+            <span className="text-3xl block mb-2">🏥</span>
+            <h3 className="font-bold text-gray-800 text-sm font-heading">Cases</h3>
+            <p className="text-[10px] text-gray-500 mt-0.5">Clinical</p>
+          </motion.div>
+        </Link>
+
+        <Link href="/chat">
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            className="p-4 bg-white rounded-3xl shadow-lg border border-purple-100 text-center"
+          >
+            <span className="text-3xl block mb-2">💬</span>
+            <h3 className="font-bold text-gray-800 text-sm font-heading">Chat</h3>
+            <p className="text-[10px] text-gray-500 mt-0.5">Toothsie</p>
           </motion.div>
         </Link>
       </div>

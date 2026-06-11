@@ -1,11 +1,11 @@
 'use client';
 
 interface UsageBarProps {
-  used: number;
-  tokens_used: number;
+  used?: number;
+  tokens_used?: number;
 }
 
-export default function UsageBar({ used, tokens_used }: UsageBarProps) {
+export default function UsageBar({ used = 0, tokens_used = 0 }: UsageBarProps) {
   return (
     <div className="px-4 py-3 bg-white/80 backdrop-blur rounded-2xl shadow-sm border border-pink-50">
       <div className="flex justify-between items-center">
