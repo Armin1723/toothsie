@@ -28,6 +28,7 @@ interface IdentifyHistoryItem {
   result: IdentifyResult;
   thumbnail: string;
   date: string;
+  source: 'db' | 'local';
 }
 
 const TABS = [
@@ -78,9 +79,39 @@ export default function HistoPage() {
       if (date === today) setIdentifyCount(count);
     }
 
-    // Identify history
-    const hist = localStorage.getItem(HISTORY_KEY);
-    if (hist) setHistory(JSON.parse(hist));
+    // Load history: API first, then merge legacy localStorage items
+    const loadHistory = async () => {
+      let dbItems: IdentifyHistoryItem[] = [];
+      try {
+        const res = await fetch('/api/histo/identifications');
+        const data = await res.json();
+        if (data.identifications) {
+          dbItems = data.identifications.map((row: any) => ({
+            id: row.id,
+            result: typeof row.result === 'string' ? JSON.parse(row.result) : row.result,
+            thumbnail: row.thumbnail || '',
+            date: new Date(row.created_at).toLocaleString(),
+            source: 'db' as const,
+          }));
+        }
+      } catch {
+        // ignore
+      }
+
+      // Legacy localStorage items (mark with source: 'local')
+      let localItems: IdentifyHistoryItem[] = [];
+      const legacy = localStorage.getItem(HISTORY_KEY);
+      if (legacy) {
+        const parsed: IdentifyHistoryItem[] = JSON.parse(legacy);
+        localItems = parsed.map(item => ({ ...item, source: 'local' as const }));
+      }
+
+      // Merge: db items first, then local items that don't overlap by date+result
+      const dbKeys = new Set(dbItems.map(i => `${i.date}-${JSON.stringify(i.result)}`));
+      const uniqueLocal = localItems.filter(i => !dbKeys.has(`${i.date}-${JSON.stringify(i.result)}`));
+      setHistory([...dbItems, ...uniqueLocal]);
+    };
+    loadHistory();
   }, []);
 
   const incrementIdentifyCount = () => {
@@ -109,15 +140,26 @@ export default function HistoPage() {
         img.src = image;
       });
     }
+    let savedId = Date.now();
+    try {
+      const res = await fetch('/api/histo/identifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result, thumbnail }),
+      });
+      const data = await res.json();
+      if (data.identification?.id) savedId = data.identification.id;
+    } catch {
+      // fallback: use local id
+    }
     const item: IdentifyHistoryItem = {
-      id: Date.now(),
+      id: savedId,
       result,
       thumbnail,
       date: new Date().toLocaleString(),
+      source: 'db',
     };
-    const updated = [item, ...history].slice(0, 20);
-    setHistory(updated);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    setHistory(prev => [item, ...prev].slice(0, 20));
   };
 
   const handleFile = async (file: File) => {
@@ -179,6 +221,26 @@ export default function HistoPage() {
     setFileName('');
     setIdentifyResult(null);
     setIdentifyError(null);
+  };
+
+  const handleDelete = async (item: IdentifyHistoryItem) => {
+    if (item.source === 'db') {
+      try {
+        await fetch(`/api/histo/identifications/${item.id}`, { method: 'DELETE' });
+      } catch {
+        // ignore
+      }
+    } else {
+      // Remove from localStorage legacy
+      const legacy = localStorage.getItem(HISTORY_KEY);
+      if (legacy) {
+        const parsed = JSON.parse(legacy);
+        const filtered = parsed.filter((i: any) => i.id !== item.id);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered));
+      }
+    }
+    setHistory(prev => prev.filter(i => i.id !== item.id));
+    if (viewingHistory?.id === item.id) setViewingHistory(null);
   };
 
   // ─── Quiz handlers ───
@@ -452,6 +514,13 @@ export default function HistoPage() {
                           <div className="w-full h-full flex items-center justify-center text-2xl bg-pink-50">🔬</div>
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-400/80 rounded-full text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Delete"
+                        >
+                          ✕
+                        </button>
                       </motion.button>
                     ))}
                   </div>
@@ -505,7 +574,7 @@ export default function HistoPage() {
 
           {/* Viewing old history result */}
           {viewingHistory && !image && (
-            <ViewingResult item={viewingHistory} onBack={() => setViewingHistory(null)} />
+            <ViewingResult item={viewingHistory} onBack={() => setViewingHistory(null)} onDelete={(item) => handleDelete(item)} />
           )}
 
           {/* Preview */}
@@ -664,7 +733,7 @@ export default function HistoPage() {
   );
 }
 
-function ViewingResult({ item, onBack }: { item: IdentifyHistoryItem; onBack: () => void }) {
+function ViewingResult({ item, onBack, onDelete }: { item: IdentifyHistoryItem; onBack: () => void; onDelete: (item: IdentifyHistoryItem) => void }) {
   const r = item.result;
   return (
     <motion.div
@@ -674,7 +743,7 @@ function ViewingResult({ item, onBack }: { item: IdentifyHistoryItem; onBack: ()
     >
       {/* Thumbnail */}
       {item.thumbnail && (
-        <div className="mb-3 rounded-3xl overflow-hidden border-2 border-pink-100 max-h-[180px]">
+        <div className="mb-3 rounded-3xl overflow-hidden border-2 border-pink-100 max-h-[180px] relative">
           <img src={item.thumbnail} alt="" className="w-full object-contain bg-white" />
         </div>
       )}
@@ -733,6 +802,17 @@ function ViewingResult({ item, onBack }: { item: IdentifyHistoryItem; onBack: ()
           const text = `🔬 Histology Identification\n\nTissue: ${r.tissue}\nStain: ${r.stain}\nMagnification: ${r.magnification}\nFeatures: ${r.features.join(', ')}\n\n${r.description}`;
           navigator.clipboard?.writeText(text);
         }} className="px-4 py-3 bg-gray-50 text-gray-500 rounded-2xl text-sm border border-gray-200">📋</motion.button>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => {
+            onDelete(item);
+            onBack();
+          }}
+          className="px-4 py-3 bg-red-50 text-red-500 rounded-2xl text-sm border border-red-200"
+          aria-label="Delete"
+        >
+          🗑️
+        </motion.button>
       </div>
     </motion.div>
   );

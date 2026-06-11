@@ -45,6 +45,13 @@ export async function initializeDatabase() {
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
 
+  await sql`CREATE TABLE IF NOT EXISTS histo_identifications (
+    id SERIAL PRIMARY KEY,
+    result TEXT NOT NULL,
+    thumbnail TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
   await sql`CREATE TABLE IF NOT EXISTS conversations (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL DEFAULT 'New Chat',
@@ -132,6 +139,26 @@ export async function getLearningContext(limit = 5) {
 export async function saveLearningContext(topic: string, summary: string) {
   await ensureDb();
   await sql`INSERT INTO learning_context (topic, context_summary) VALUES (${topic}, ${summary})`;
+}
+
+// Histo identification operations
+export async function getHistoIdentifications() {
+  await ensureDb();
+  return sql`SELECT * FROM histo_identifications ORDER BY created_at DESC`;
+}
+
+export async function saveHistoIdentification(result: string, thumbnail: string) {
+  await ensureDb();
+  const rows = await sql`
+    INSERT INTO histo_identifications (result, thumbnail) VALUES (${result}, ${thumbnail})
+    RETURNING id, created_at
+  `;
+  return rows[0] as any;
+}
+
+export async function deleteHistoIdentification(id: number) {
+  await ensureDb();
+  await sql`DELETE FROM histo_identifications WHERE id = ${id}`;
 }
 
 // Conversation history
